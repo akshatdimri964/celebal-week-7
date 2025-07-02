@@ -1,0 +1,21 @@
+DELIMITER //
+CREATE PROCEDURE scd_type_4()
+BEGIN
+  INSERT INTO dim_customer (customer_id, name, address)
+  SELECT s.customer_id, s.name, s.address
+  FROM source_data s
+  LEFT JOIN dim_customer d ON s.customer_id = d.customer_id
+  WHERE d.customer_id IS NULL;
+
+  INSERT INTO historical_data (customer_id, name, address, change_date)
+  SELECT s.customer_id, s.name, s.address, NOW()
+  FROM source_data s
+  JOIN dim_customer d ON s.customer_id = d.customer_id
+  WHERE s.name != d.name OR s.address != d.address;
+
+  UPDATE dim_customer d
+  JOIN source_data s ON d.customer_id = s.customer_id
+  SET d.name = s.name, d.address = s.address
+  WHERE s.name != d.name OR s.address != d.address;
+END //
+DELIMITER ;
