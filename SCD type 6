@@ -1,0 +1,25 @@
+DELIMITER //
+CREATE PROCEDURE scd_type_6()
+BEGIN
+  DECLARE done INT DEFAULT 0;
+  DECLARE cid INT;
+  DECLARE cname VARCHAR(255);
+  DECLARE caddress VARCHAR(255);
+  DECLARE cur CURSOR FOR SELECT customer_id, name, address FROM source_data;
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+  OPEN cur;
+  read_loop: LOOP
+    FETCH cur INTO cid, cname, caddress;
+    IF done THEN LEAVE read_loop; END IF;
+    IF EXISTS (SELECT 1 FROM dim_customer WHERE customer_id = cid AND (name != cname OR address != caddress) AND current_flag = 1) THEN
+      UPDATE dim_customer SET end_date = NOW(), current_flag = 0 WHERE customer_id = cid AND current_flag = 1;
+      INSERT INTO dim_customer (customer_id, name, address, previous_address, start_date, end_date, current_flag)
+      VALUES (cid, cname, caddress, (SELECT address FROM dim_customer WHERE customer_id = cid AND current_flag = 0 ORDER BY end_date DESC LIMIT 1), NOW(), NULL, 1);
+    ELSEIF NOT EXISTS (SELECT 1 FROM dim_customer WHERE customer_id = cid) THEN
+      INSERT INTO dim_customer (customer_id, name, address, previous_address, start_date, end_date, current_flag)
+      VALUES (cid, cname, caddress, NULL, NOW(), NULL, 1);
+    END IF;
+  END LOOP;
+  CLOSE cur;
+END //
+DELIMITER ;
