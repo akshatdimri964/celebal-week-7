@@ -1,0 +1,8 @@
+DELIMITER //
+CREATE PROCEDURE scd_type_1()
+BEGIN
+  INSERT INTO dim_customer (customer_id, name, address)
+  SELECT customer_id, name, address FROM source_data
+  ON DUPLICATE KEY UPDATE name = VALUES(name), address = VALUES(address);
+END //
+DELIMITER ;
