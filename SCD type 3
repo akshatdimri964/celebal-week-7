@@ -1,0 +1,14 @@
+DELIMITER //
+CREATE PROCEDURE scd_type_3()
+BEGIN
+  UPDATE dim_customer d
+  JOIN source_data s ON d.customer_id = s.customer_id
+  SET d.previous_address = d.address, d.address = s.address
+  WHERE d.address != s.address;
+  INSERT INTO dim_customer (customer_id, name, address, previous_address)
+  SELECT s.customer_id, s.name, s.address, NULL
+  FROM source_data s
+  LEFT JOIN dim_customer d ON s.customer_id = d.customer_id
+  WHERE d.customer_id IS NULL;
+END //
+DELIMITER ;
